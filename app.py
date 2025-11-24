@@ -46,5 +46,5 @@ def main():
                                input_values=input_features,
                                performance=performance_data)
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     app.run(host="0.0.0.0", port=5000)
