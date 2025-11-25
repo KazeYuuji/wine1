@@ -1,79 +1,108 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediksi Kualitas Anggur</title>
+    <title>Wine Quality Predictor</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; line-height: 1.6; display: flex; justify-content: center; align-items: center; margin: 0; padding: 20px; }
-        .container { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; max-width: 800px; } /* Max-width diperbesar */
-        h1, h2 { color: #4a4a4a; text-align: center; margin-bottom: 1.5rem; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
-        input[type="number"] { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 0.75rem; background-color: #5c67f2; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color 0.3s ease; }
-        button:hover { background-color: #4a54b3; }
-        .result { margin-top: 2rem; padding: 1rem; background-color: #e9f7ef; border-left: 5px solid #28a745; font-size: 1.2rem; text-align: center; }
-        .error { margin-top: 2rem; padding: 1rem; background-color: #f8d7da; border-left: 5px solid #dc3545; color: #721c24; }
-
-        /* Gaya baru untuk bagian kinerja model */
-        .performance-section { margin-bottom: 2rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; }
-        th { background-color: #e9ecef; }
-        .best-model { background-color: #d4edda; font-weight: bold; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #4a4a4a;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        button {
+            grid-column: 1 / -1;
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border-left: 5px solid #28a745;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <h1>Prediksi Kualitas Anggur</h1>
-        
-        <div class="performance-section">
-            <h2>Kinerja Model</h2>
-            <p>Berikut adalah perbandingan kinerja model yang telah dilatih. Model dengan F1-Score tertinggi digunakan untuk prediksi.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Model</th>
-                        <th>Akurasi</th>
-                        <th>F1-Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr {% if performance.best_model_name == 'Naive Bayes' %}class="best-model"{% endif %}>
-                        <td>Naive Bayes</td>
-                        <td>{{ performance.naive_bayes.accuracy }}</td>
-                        <td>{{ performance.naive_bayes.f1_score }}</td>
-                    </tr>
-                    <tr {% if performance.best_model_name == 'ID3 (Decision Tree)' %}class="best-model"{% endif %}>
-                        <td>ID3 (Decision Tree)</td>
-                        <td>{{ performance.id3.accuracy }}</td>
-                        <td>{{ performance.id3.f1_score }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
+        <h1>Prediksi Kualitas Wine</h1>
+        <p>Masukkan nilai fitur-fitur wine di bawah ini untuk memprediksi kualitasnya (skala 3-8).</p>
 
-        {% if prediction %}
-            <div class="result">
-                <strong>Hasil Prediksi Kualitas:</strong> {{ prediction }}
-            </div>
-        {% endif %}
-
-        <form action="/" method="post">
-            {% for feature in features %}
+        <form method="POST">
+            <div class="form-grid">
+                {% for feature in features %}
                 <div class="form-group">
                     <label for="{{ feature }}">{{ feature.replace('_', ' ').title() }}:</label>
-                    <input type="number" step="any" id="{{ feature }}" name="{{ feature }}" 
-                           value="{{ input_values[feature] if input_values is defined and input_values[feature] else '' }}" required>
+                    <input type="number" step="any" id="{{ feature }}" name="{{ feature }}" required>
                 </div>
-            {% endfor %}
-            <button type="submit">Prediksi</button>
+                {% endfor %}
+                <button type="submit">Prediksi Kualitas</button>
+            </div>
         </form>
+
+        {% if prediction %}
+            <div class="result {% if 'Error' in prediction %}error{% endif %}">
+                {% if 'Error' in prediction %}
+                    <h2>{{ prediction }}</h2>
+                {% else %}
+                    <h2>Prediksi Kualitas: {{ prediction }}</h2>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
+
 </body>
 </html>
