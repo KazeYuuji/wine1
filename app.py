@@ -1,50 +1,48 @@
-import flask
-from flask import request, render_template
+from flask import Flask, render_template, request
 import joblib
 import pandas as pd
 import numpy as np
-import json
-from flask import Flask
 
-app = flask.Flask(__name__)
+# Inisialisasi aplikasi Flask
+app = Flask(__name__)
 
+# Muat model, scaler, dan nama fitur yang telah dilatih
 try:
-    model = joblib.load('best_model.pkl')
-    feature_names = joblib.load('feature_names.pkl')
-    with open('model_performance.json', 'r') as f:
-        performance_data = json.load(f)
-    print("Model, fitur, dan data kinerja berhasil dimuat.")
-except FileNotFoundError as e:
-    print(f"Error: File tidak ditemukan ({e}). Jalankan 'train_model.py' terlebih dahulu.")
+    model = joblib.load('naive_bayes_model.joblib')
+    scaler = joblib.load('scaler.joblib')
+    feature_names = joblib.load('feature_names.joblib')
+except FileNotFoundError:
+    print("Error: File model (.joblib) tidak ditemukan. Jalankan 'train_model.py' terlebih dahulu.")
+    # Keluar jika model tidak ditemukan agar tidak error saat di-deploy
     exit()
 
+
+# Route untuk halaman utama (menampilkan form dan hasil)
 @app.route('/', methods=['GET', 'POST'])
-def main():
-    if request.method == 'GET':
-        return render_template('index.html', 
-                               features=feature_names, 
-                               performance=performance_data)
-
+def index():
+    prediction = None
     if request.method == 'POST':
-        input_features = {}
-        for feature in feature_names:
-            value = request.form.get(feature)
-            try:
-                input_features[feature] = float(value)
-            except (ValueError, TypeError):
-                return render_template('index.html', 
-                                       features=feature_names, 
-                                       performance=performance_data,
-                                       error=f"Input untuk '{feature}' tidak valid. Harap masukkan angka.")
+        try:
+            # 1. Ambil data dari form
+            input_data = {feature: float(request.form.get(feature)) for feature in feature_names}
+            
+            # 2. Buat DataFrame dari input
+            input_df = pd.DataFrame([input_data])
 
-        input_df = pd.DataFrame([input_features], columns=feature_names)
-        prediction = model.predict(input_df)[0]
-        
-        return render_template('index.html', 
-                               features=feature_names, 
-                               prediction=prediction,
-                               input_values=input_features,
-                               performance=performance_data)
+            # 3. Lakukan scaling pada data input (menggunakan scaler yang sama dengan data latih)
+            input_scaled = scaler.transform(input_df)
 
-if __name__ == "_main_":
-    app.run(host="0.0.0.0", port=5000)
+            # 4. Lakukan prediksi
+            predicted_class = model.predict(input_scaled)
+            prediction = predicted_class[0]
+
+        except (ValueError, TypeError):
+            # Tangani error jika input tidak valid (misalnya, bukan angka)
+            prediction = "Error: Mohon masukkan nilai numerik yang valid untuk semua field."
+
+    # Render template HTML, kirim hasil prediksi (jika ada)
+    return render_template('index.html', features=feature_names, prediction=prediction)
+
+if __name__ == '__main__':
+    # Untuk development lokal
+    app.run(debug=True)
